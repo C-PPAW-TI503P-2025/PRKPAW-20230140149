@@ -7,8 +7,8 @@ const { addUserData } = require('../middleware/permissionMiddleware');
 const { body } = require('express-validator'); // <-- HANYA IMPORT 'body'
 
 router.use(addUserData);
-router.post('/check-in', presensiController.CheckIn);
-router.post('/check-out', presensiController.CheckOut);
+router.post('/check-in', presensiController.checkIn);
+router.post('/check-out', presensiController.checkOut);
 router.delete("/:id", presensiController.deletePresensi);
 
 // Aturan validasi untuk UPDATE presensi

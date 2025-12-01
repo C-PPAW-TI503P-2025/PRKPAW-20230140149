@@ -1,47 +1,79 @@
-const jwt = require('jsonwebtoken');
-const { User } = require('../models');
+// ✅ TAMBAHAN WAJIB: Biar bisa baca process.env.JWT_SECRET dari file .env
+require('dotenv').config(); 
 
-const JWT_SECRET = 'INI_ADALAH_KUNCI_RAHASIA_ANDA_YANG_SANGAT_AMAN'; // pastikan sama seperti di authController
+const jwt = require("jsonwebtoken");
+// Pastikan nama variabel ENV-nya sama persis dengan yang ada di file .env kamu
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here"; 
 
-exports.addUserData = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
+// Middleware untuk autentikasi token
+exports.authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-    if (!authHeader) {
-      return res.status(401).json({ message: 'Token tidak ditemukan' });
-    }
+  console.log("=== AUTHENTICATE TOKEN ===");
+  // console.log("Auth Header:", authHeader); // Boleh dikomen biar log ga penuh
+  console.log("Token:", token ? "Token Ada" : "Token Kosong");
 
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Ambil data user dari database sesuai id di token
-    const user = await User.findByPk(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'User tidak ditemukan' });
-    }
-
-    // Simpan data user ke request
-    req.user = {
-      id: user.id,
-      nama: user.nama,
-      role: user.role
-    };
-
-    console.log(`Middleware: Data user (${user.nama}, role: ${user.role}) ditambahkan.`);
-    next();
-  } catch (error) {
-    console.error('Middleware Error:', error.message);
-    return res.status(401).json({ message: 'Token tidak valid', error: error.message });
+  if (token == null) {
+    return res
+      .status(401)
+      .json({ message: "Akses ditolak. Token tidak disediakan." });
   }
+
+  jwt.verify(token, JWT_SECRET, (err, userPayload) => {
+    if (err) {
+      console.error("JWT Verify Error:", err.message);
+      return res
+        .status(403)
+        .json({ message: "Token tidak valid atau kedaluwarsa." });
+    }
+    
+    // console.log("User Payload:", userPayload);
+    req.user = userPayload;
+    next();
+  });
 };
 
+// Middleware untuk menambahkan data user (alias untuk authenticateToken)
+exports.addUserData = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  console.log("=== ADD USER DATA ===");
+  console.log("JWT_SECRET Loaded:", JWT_SECRET !== "your-secret-key-here"); // Cek apakah secret asli termuat
+
+  if (token == null) {
+    return res
+      .status(401)
+      .json({ message: "Akses ditolak. Token tidak disediakan." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, userPayload) => {
+    if (err) {
+      console.error("JWT Verify Error:", err.message);
+      // Jangan tampilkan secret di log production demi keamanan, tapi untuk debug ok
+      // console.error("Secret mismatch?"); 
+      return res
+        .status(403)
+        .json({ message: "Token tidak valid atau kedaluwarsa." });
+    }
+    
+    console.log("User Payload berhasil decode:", userPayload.role); // Cek role yang masuk
+    req.user = userPayload;
+    next();
+  });
+};
+
+// Middleware 'isAdmin' memeriksa 'role' dari token
 exports.isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    console.log('Middleware: Izin admin diberikan.');
+  console.log("=== CHECK ADMIN ===");
+  // console.log("Role:", req.user?.role);
+
+  if (req.user && req.user.role === "admin") {
     next();
   } else {
-    console.log('Middleware: Gagal! Pengguna bukan admin.');
-    return res.status(403).json({ message: 'Akses ditolak: Hanya untuk admin' });
+    return res
+      .status(403)
+      .json({ message: "Akses ditolak. Hanya untuk admin." });
   }
 };

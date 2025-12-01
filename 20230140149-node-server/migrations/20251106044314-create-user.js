@@ -11,7 +11,7 @@ module.exports = {
       },
       nama: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: false,
       },
       email: {
         type: Sequelize.STRING,

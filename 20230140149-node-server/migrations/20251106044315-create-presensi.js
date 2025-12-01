@@ -11,30 +11,47 @@ module.exports = {
       },
       userId: {
         type: Sequelize.INTEGER,
-        allowNull: false
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
       },
       nama: {
         type: Sequelize.STRING,
+        allowNull: true
+      },
+      tanggal: {
+        type: Sequelize.DATE,
         allowNull: false
       },
-      checkIn: {
-        allowNull: false,
-        type: Sequelize.DATE
+      status: {
+        type: Sequelize.STRING,
+        allowNull: true
       },
-      checkOut: {
-        allowNull: true, // checkOut bisa kosong saat pertama kali check-in
-        type: Sequelize.DATE
+      latitude: {
+        type: Sequelize.DOUBLE,
+        allowNull: true
+      },
+      longitude: {
+        type: Sequelize.DOUBLE,
+        allowNull: true
       },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       updatedAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Presensis');
   }

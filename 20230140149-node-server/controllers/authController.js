@@ -1,7 +1,14 @@
+// controllers/authController.js
+
+// 1. TAMBAHKAN baris ini agar bisa baca file .env
+require('dotenv').config();
+
 const { User } = require('../models');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');	
-const JWT_SECRET = 'INI_ADALAH_KUNCI_RAHASIA_ANDA_YANG_SANGAT_AMAN';
+const jwt = require('jsonwebtoken');
+
+// 2. GANTI bagian Secret Key agar SAMA PERSIS dengan Middleware
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here";
 
 exports.register = async (req, res) => {
   try {
@@ -15,23 +22,23 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: "Role tidak valid. Harus 'mahasiswa' atau 'admin'." });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10); 
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       nama,
       email,
       password: hashedPassword,
-      role: role || 'mahasiswa' 
+      role: role || 'mahasiswa'
     });
 
     res.status(201).json({
-  message: "Registrasi berhasil",
-  data: { 
-    id: newUser.id, 
-    nama: newUser.nama,   
-    email: newUser.email, 
-    role: newUser.role 
-  }
-});
+      message: "Registrasi berhasil",
+      data: {
+        id: newUser.id,
+        nama: newUser.nama,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
 
   } catch (error) {
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -40,7 +47,6 @@ exports.register = async (req, res) => {
     res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
   }
 };
-
 
 exports.login = async (req, res) => {
   try {
@@ -56,22 +62,25 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Password salah." });
     }
 
+    // Payload Token
     const payload = {
       id: user.id,
       nama: user.nama,
-      role: user.role 
+      role: user.role
     };
 
+    // Membuat Token dengan SECRET yang sudah disamakan
     const token = jwt.sign(payload, JWT_SECRET, {
-      expiresIn: '1h' 
+      expiresIn: '1h'
     });
 
     res.json({
       message: "Login berhasil",
-      token: token 
+      token: token
     });
 
   } catch (error) {
     res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
   }
 };
+
