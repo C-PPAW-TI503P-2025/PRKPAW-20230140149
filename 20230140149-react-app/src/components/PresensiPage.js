@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import Navbar from './Navbar';
+import Webcam from 'react-webcam';
 
 // =========================================================
 // 1. WAJIB: Import CSS Leaflet agar peta tidak pecah-pecah
@@ -28,10 +29,21 @@ function AttendancePage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [coords, setCoords] = useState(null); // Lokasi user: {lat, lng}
+  const [image, setImage] = useState(null);
   const mapRef = useRef(null);
+  const webcamRef = useRef(null);
 
   // Ambil token dari localStorage
-  const getToken = () => localStorage.getItem('token');
+  const getToken = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    setError('Sesi login habis. Silakan login ulang.');
+    // Redirect ke login
+    window.location.href = '/login';
+  }
+  return token;
+};
+
 
   // Ambil lokasi GPS
   const getLocation = () => {
@@ -52,6 +64,12 @@ function AttendancePage() {
       setError("Browser tidak mendukung geolocation.");
     }
   };
+
+  // Fungsi untuk capture foto dari webcam
+  const capture = useCallback(() => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setImage(imageSrc);
+  }, [webcamRef]);
 
   // Ambil lokasi ketika page dibuka
   useEffect(() => {
@@ -76,28 +94,34 @@ function AttendancePage() {
     setError('');
     setMessage('');
 
-    if (!coords) {
-      setError("Lokasi belum didapatkan. Izinkan akses lokasi.");
+    if (!coords || !image) {
+      setError("Lokasi dan Foto wajib ada!");
       return;
     }
 
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      };
+      // Konversi base64 image ke blob
+      const blob = await (await fetch(image)).blob();
+
+      // Buat FormData
+      const formData = new FormData();
+      formData.append('latitude', coords.lat);
+      formData.append('longitude', coords.lng);
+      formData.append('buktiFoto', blob, 'selfie.jpg');
 
       const response = await axios.post(
         'http://localhost:3001/api/presensi/check-in',
-        {
-          latitude: coords.lat,
-          longitude: coords.lng,
-        },
-        config
+        formData,
+        { 
+          headers: { 
+            Authorization: `Bearer ${getToken()}`,
+            'Content-Type': 'multipart/form-data'
+          } 
+        }
       );
 
       setMessage(response.data.message || 'Check-in berhasil!');
+      setImage(null); // Reset foto setelah berhasil
     } catch (err) {
       setError(err.response ? err.response.data.message : 'Check-in gagal');
     }
@@ -161,6 +185,39 @@ function AttendancePage() {
               ❌ {error}
             </div>
           )}
+
+          {/* WEBCAM / FOTO SECTION */}
+          <div className="my-4 border rounded-lg overflow-hidden bg-black">
+            {image ? (
+              <img src={image} alt="Selfie" className="w-full" />
+            ) : (
+              <Webcam
+                audio={false}
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                className="w-full"
+              />
+            )}
+          </div>
+
+          {/* TOMBOL AMBIL FOTO / FOTO ULANG */}
+          <div className="mb-4">
+            {!image ? (
+              <button 
+                onClick={capture} 
+                className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600 transition-all font-semibold"
+              >
+                📸 Ambil Foto
+              </button>
+            ) : (
+              <button 
+                onClick={() => setImage(null)} 
+                className="bg-gray-500 text-white px-4 py-2 rounded w-full hover:bg-gray-600 transition-all font-semibold"
+              >
+                🔄 Foto Ulang
+              </button>
+            )}
+          </div>
 
           {/* BUTTON CHECK-IN & CHECK-OUT */}
           <div className="flex space-x-4">

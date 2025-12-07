@@ -4,10 +4,11 @@ const express = require('express');
 const router = express.Router();
 const presensiController = require('../controllers/presensiController');
 const { addUserData } = require('../middleware/permissionMiddleware');
-const { body } = require('express-validator'); // <-- HANYA IMPORT 'body'
+const { body } = require('express-validator');
 
 router.use(addUserData);
-router.post('/check-in', presensiController.checkIn);
+
+router.post('/check-in', presensiController.permissionMiddleware, presensiController.checkIn);
 router.post('/check-out', presensiController.checkOut);
 router.delete("/:id", presensiController.deletePresensi);
 
@@ -26,9 +27,8 @@ const validatePresensiUpdate = [
 // Rute untuk UPDATE presensi
 router.put(
   "/:id", 
-  validatePresensiUpdate, // <-- Menggunakan validator yang benar
+  validatePresensiUpdate,
   presensiController.updatePresensi
 );
-
 
 module.exports = router;

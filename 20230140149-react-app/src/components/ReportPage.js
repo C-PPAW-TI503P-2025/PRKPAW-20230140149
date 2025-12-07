@@ -9,6 +9,7 @@ function ReportPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null); // State untuk modal foto
 
   const fetchReports = async (query) => {
     const token = localStorage.getItem('token');
@@ -24,15 +25,14 @@ function ReportPage() {
           Authorization: `Bearer ${token}`,
         },
         params: {
-          tanggalMulai: '2020-01-01', // Tanggal mulai yang lama untuk ambil semua data
-          tanggalSelesai: new Date().toISOString().split('T')[0], // Hari ini
-          ...(query && { nama: query }) // Tambahkan filter nama jika ada
+          tanggalMulai: '2020-01-01',
+          tanggalSelesai: new Date().toISOString().split('T')[0],
+          ...(query && { nama: query })
         }
       };
 
       const response = await axios.get('http://localhost:3001/api/reports/daily', config);
       
-      // 🔍 DEBUG: Log response
       console.log('=== DEBUG RESPONSE ===');
       console.log('Response data:', response.data);
       if (response.data.data && response.data.data.length > 0) {
@@ -58,11 +58,21 @@ function ReportPage() {
     fetchReports(searchTerm);
   };
 
+  // Fungsi untuk buka modal foto
+  const openImageModal = (imageUrl) => {
+    setSelectedImage(imageUrl);
+  };
+
+  // Fungsi untuk tutup modal foto
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100">
       <Navbar />
       
-      <div className="max-w-6xl mx-auto p-8">
+      <div className="max-w-7xl mx-auto p-8">
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">📊</div>
           <h1 className="text-4xl font-bold text-pink-600 mb-2">
@@ -116,78 +126,118 @@ function ReportPage() {
           </div>
         ) : (
           <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
-            <table className="min-w-full divide-y divide-pink-200">
-              <thead className="bg-gradient-to-r from-pink-500 to-purple-500">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                    👤 Nama
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                    ✅ Check-In
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                    🚪 Check-Out
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-pink-100">
-                {reports.length > 0 ? (
-                  reports.map((presensi, index) => (
-                    <tr 
-                      key={presensi.id} 
-                      className={`hover:bg-pink-50 transition-colors ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-pink-50/30'
-                      }`}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">
-                          {presensi.user ? presensi.user.nama : 'N/A'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-700">
-                          {presensi.checkIn
-                            ? new Date(presensi.checkIn).toLocaleString('id-ID', {
-                                timeZone: 'Asia/Jakarta',
-                              })
-                            : <span className="text-gray-400">N/A</span>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {presensi.checkOut ? (
-                          <div className="text-sm text-gray-700">
-                            {new Date(presensi.checkOut).toLocaleString('id-ID', {
-                              timeZone: 'Asia/Jakarta',
-                            })}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-pink-200">
+                <thead className="bg-gradient-to-r from-pink-500 to-purple-500">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      👤 Nama
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      ✅ Check-In
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      🚪 Check-Out
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                      📸 Bukti Foto
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-pink-100">
+                  {reports.length > 0 ? (
+                    reports.map((presensi, index) => (
+                      <tr 
+                        key={presensi.id} 
+                        className={`hover:bg-pink-50 transition-colors ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-pink-50/30'
+                        }`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {presensi.user ? presensi.user.nama : 'N/A'}
                           </div>
-                        ) : (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                            ⏳ Belum Check-Out
-                          </span>
-                        )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-700">
+                            {presensi.checkIn
+                              ? new Date(presensi.checkIn).toLocaleString('id-ID', {
+                                  timeZone: 'Asia/Jakarta',
+                                })
+                              : <span className="text-gray-400">N/A</span>}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {presensi.checkOut ? (
+                            <div className="text-sm text-gray-700">
+                              {new Date(presensi.checkOut).toLocaleString('id-ID', {
+                                timeZone: 'Asia/Jakarta',
+                              })}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                              ⏳ Belum Check-Out
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {presensi.buktiFoto ? (
+                            <img
+                              src={`http://localhost:3001/${presensi.buktiFoto}`}
+                              alt="Bukti Foto"
+                              className="h-16 w-16 object-cover rounded-lg cursor-pointer hover:scale-110 transition-transform shadow-md"
+                              onClick={() => openImageModal(`http://localhost:3001/${presensi.buktiFoto}`)}
+                            />
+                          ) : (
+                            <span className="text-gray-400 text-sm">Tidak ada foto</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="4"
+                        className="px-6 py-12 text-center"
+                      >
+                        <div className="text-gray-400 text-5xl mb-4">📭</div>
+                        <p className="text-gray-500 font-semibold">
+                          {searchTerm 
+                            ? `Tidak ada data untuk pencarian "${searchTerm}"`
+                            : 'Tidak ada data presensi yang tersedia.'}
+                        </p>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="3"
-                      className="px-6 py-12 text-center"
-                    >
-                      <div className="text-gray-400 text-5xl mb-4">📭</div>
-                      <p className="text-gray-500 font-semibold">
-                        {searchTerm 
-                          ? `Tidak ada data untuk pencarian "${searchTerm}"`
-                          : 'Tidak ada data presensi yang tersedia.'}
-                      </p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
+
+      {/* MODAL UNTUK ZOOM FOTO */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={closeImageModal}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={closeImageModal}
+              className="absolute -top-10 right-0 text-white text-3xl font-bold hover:text-pink-400 transition-colors"
+            >
+              ✕
+            </button>
+            <img
+              src={selectedImage}
+              alt="Bukti Foto Zoom"
+              className="max-w-full max-h-screen rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

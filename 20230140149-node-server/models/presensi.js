@@ -62,6 +62,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true, // ✅ Boleh null jika user tidak memberikan izin lokasi
       defaultValue: 0.0,
       comment: 'Longitude lokasi check-in/check-out'
+    },
+    buktiFoto: {
+      type: DataTypes.STRING,
+      allowNull: true
     }
   }, {
     sequelize,

@@ -1,6 +1,8 @@
 // controllers/presensiController.js
 const { Presensi, User } = require('../models');
 const { Op } = require('sequelize');
+const multer = require('multer');
+const path = require('path');
 
 // helper: cek apakah value bisa dianggap sebagai koordinat valid (opsional sederhana)
 const isValidCoordinate = (v) => {
@@ -9,6 +11,27 @@ const isValidCoordinate = (v) => {
   return Number.isFinite(n) && Math.abs(n) <= 180;
 };
 
+// Konfigurasi Multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    // Format nama file: userId-timestamp.jpg
+    cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Hanya file gambar yang diperbolehkan!'), false);
+  }
+};
+
+const upload = multer({ storage: storage, fileFilter: fileFilter });
+
 // ===========================
 // POST /api/presensi/check-in
 // ===========================
@@ -16,9 +39,10 @@ exports.checkIn = async (req, res) => {
   try {
     const userId = req.user.id;
     const { latitude, longitude } = req.body;
+    const buktiFoto = req.file ? req.file.path : null;
 
     console.log('=== CHECK-IN REQUEST ===');
-    console.log('User ID:', userId, 'Body:', { latitude, longitude });
+    console.log('User ID:', userId, 'Body:', { latitude, longitude }, 'Foto:', buktiFoto);
 
     // ambil user untuk nama
     const userData = await User.findByPk(userId);
@@ -53,13 +77,12 @@ exports.checkIn = async (req, res) => {
     const newPresensi = await Presensi.create({
       userId,
       nama: userName,
-      tanggal: new Date(),   // <- tambahkan ini
+      tanggal: new Date(),
       checkIn: new Date(),
       latitude: lat,
-      longitude: lng
+      longitude: lng,
+      buktiFoto: buktiFoto
     });
-
-
 
     console.log('Check-in berhasil - Presensi ID:', newPresensi.id);
 
@@ -72,7 +95,8 @@ exports.checkIn = async (req, res) => {
         nama: newPresensi.nama,
         checkIn: newPresensi.checkIn,
         latitude: newPresensi.latitude,
-        longitude: newPresensi.longitude
+        longitude: newPresensi.longitude,
+        buktiFoto: newPresensi.buktiFoto
       }
     });
   } catch (error) {
@@ -234,6 +258,8 @@ exports.updatePresensi = async (req, res) => {
     });
   }
 };
+
+exports.permissionMiddleware = upload.single('buktiFoto');
 
 // alias compatibility
 exports.CheckIn = exports.checkIn;
