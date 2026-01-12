@@ -30,3 +30,5 @@ app.listen(PORT, () => {
   console.log(`Express server running at http://localhost:${PORT}/`);
 });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const iotRoutes = require("./routes/iot");
+app.use("/api/iot", iotRoutes);
